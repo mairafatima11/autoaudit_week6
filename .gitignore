@@ -1,0 +1,13 @@
+venv/
+__pycache__/
+*.pyc
+
+.coverage
+.pytest_cache/
+
+logs/
+data/
+
+.env
+
+report*.md
