@@ -194,16 +194,8 @@ pip install -r requirements.txt      # includes pytest, pytest-cov
 python -m pytest tests/ -v
 python -m pytest tests/ --cov=autoaudit --cov-report=term-missing
 ```
-
-All tests run in mock mode — no API keys or network access required.
-Current automated test coverage is approximately 91%, exceeding the
-internship target of 70%. See `prompts.md` for the AI-interaction log for
-how these tests were generated and reviewed.
-
 ## 6. Known Limitations (by design, at this milestone)
 
-- No Supervisor reconciliation / confidence scoring between Security and
-  Quality agents yet — that's Week 7 scope.
 - No Fix Agent or Documentation Agent yet — Week 7 scope.
 - Embeddings currently use a deterministic local hashing-based vectorizer
   to keep the project fully offline and dependency-light. The embedding
