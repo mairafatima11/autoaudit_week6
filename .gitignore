@@ -1,13 +1,159 @@
-venv/
+# ============================================================
+# AutoAudit AI - .gitignore
+# ============================================================
+
+#########################
+# Python
+#########################
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
 
-.coverage
-.pytest_cache/
+#########################
+# Virtual Environments
+#########################
+.venv/
+venv/
+env/
+ENV/
 
-logs/
-data/
-
+#########################
+# Environment Variables
+#########################
 .env
+.env.*
+!.env.example
 
-report*.md
+#########################
+# Python Build
+#########################
+build/
+dist/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+#########################
+# Test / Coverage
+#########################
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+.cache/
+
+#########################
+# Type Checking
+#########################
+.mypy_cache/
+.pyre/
+.pytype/
+
+#########################
+# Ruff / Lint
+#########################
+.ruff_cache/
+
+#########################
+# Logs
+#########################
+logs/
+*.log
+
+#########################
+# Runtime Data
+#########################
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+#########################
+# Temporary Files
+#########################
+tmp/
+temp/
+*.tmp
+
+#########################
+# Node / Frontend
+#########################
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+#########################
+# Vite
+#########################
+vite.svg
+
+#########################
+# React
+#########################
+frontend/coverage/
+
+#########################
+# npm / pnpm / yarn
+#########################
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+#########################
+# IDE
+#########################
+.vscode/
+.idea/
+
+#########################
+# Cursor
+#########################
+.cursor/
+.cursor-cache/
+
+#########################
+# macOS
+#########################
+.DS_Store
+
+#########################
+# Windows
+#########################
+Thumbs.db
+Desktop.ini
+
+#########################
+# Docker
+#########################
+docker-data/
+
+#########################
+# Generated Reports
+#########################
+*.pdf
+# Ignore generated HTML reports only
+report*.html
+
+# Keep frontend source HTML
+!frontend/index.html
+
+# Keep markdown reports
+!*.md
+
+#########################
+# GitHub
+#########################
+.github/*.local
+
+#########################
+# Misc
+#########################
+*.swp
+*.swo
+
+vector_store/
+embeddings/
+chroma/
+.faiss/

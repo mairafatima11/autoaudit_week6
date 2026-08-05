@@ -1,0 +1,108 @@
+@import "tailwindcss";
+
+@theme {
+  /* ---- Surfaces ---- */
+  --color-ink: #0a0e13;
+  --color-panel: #121821;
+  --color-panel-raised: #19212c;
+  --color-hairline: #26313d;
+  --color-hairline-soft: #1c2530;
+
+  /* ---- Text ---- */
+  --color-fog-0: #e9eef3;
+  --color-fog-1: #aab6c2;
+  --color-fog-2: #74818f;
+
+  /* ---- Brand / interactive ---- */
+  --color-signal: #4c9eff;
+  --color-signal-dim: #2f6bb0;
+  --color-signal-glow: #8ec4ff;
+
+  /* ---- Functional severity / status palette ---- */
+  --color-critical: #f0495c;
+  --color-critical-dim: #4a1e24;
+  --color-warning: #f5a623;
+  --color-warning-dim: #4a3417;
+  --color-caution: #e8c34d;
+  --color-caution-dim: #443c1c;
+  --color-info: #59b9b0;
+  --color-info-dim: #1c3d39;
+  --color-success: #3fba6d;
+  --color-success-dim: #1b3a27;
+
+  /* ---- Type ---- */
+  --font-display: "Space Grotesk", "Inter", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", monospace;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-ink);
+  color: var(--color-fog-0);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  background-image:
+    radial-gradient(circle at 15% 0%, rgba(76, 158, 255, 0.06), transparent 45%),
+    radial-gradient(circle at 85% 20%, rgba(63, 186, 109, 0.04), transparent 40%);
+  background-attachment: fixed;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+  color: var(--color-fog-0);
+  margin: 0;
+}
+
+code, .font-mono-nums {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-hairline);
+  border-radius: 6px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-fog-2);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-signal);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* Scan-beam keyframes used by the Pipeline Rail signature element */
+@keyframes scan-beam {
+  0% { transform: translateX(-100%); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateX(100%); opacity: 0; }
+}
+
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgba(76, 158, 255, 0.45); }
+  100% { box-shadow: 0 0 0 8px rgba(76, 158, 255, 0); }
+}

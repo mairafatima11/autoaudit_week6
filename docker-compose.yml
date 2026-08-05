@@ -1,0 +1,49 @@
+version: "3.9"
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: autoaudit-ai-api:latest
+    ports:
+      - "8000:8000"
+    environment:
+      AUTOAUDIT_MODE: ${AUTOAUDIT_MODE:-mock}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GROQ_MODEL: ${GROQ_MODEL:-llama-3.3-70b-versatile}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      AUTOAUDIT_API_KEY: ${AUTOAUDIT_API_KEY:-}
+      AUTOAUDIT_DATA_DIR: /data
+      AUTOAUDIT_LOG_DIR: /logs
+    volumes:
+      - autoaudit_data:/data
+      - autoaudit_logs:/logs
+      # Mount a local repo read-only so you can audit it by local path
+      # instead of a git URL, e.g. source: "/workspace/my-repo"
+      - ${LOCAL_REPO_PATH:-./}:/workspace:ro
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: autoaudit-ai-frontend:latest
+    ports:
+      - "3000:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  autoaudit_data:
+  autoaudit_logs:

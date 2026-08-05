@@ -10,7 +10,9 @@ import sys
 
 from .agents.report_agent import ReportAgent
 from .agents.supervisor import Supervisor
+from .analysis.health_score import compute_health_score
 from .config import load_config
+from .memory.audit_history import AuditHistory
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -35,6 +37,17 @@ def main(argv: list[str] | None = None) -> int:
 
         supervisor = Supervisor(config)
         report = supervisor.run(args.repo)
+
+        # Persist the health score alongside the run so Run Comparison
+        # (Memory page) can read the real score back later instead of
+        # recomputing an approximation from reconstructed findings — same
+        # fix as the API's job runner (see api/jobs.py).
+        history = AuditHistory(config.data_dir / "audit_history.db")
+        try:
+            health = compute_health_score(report, report.doc_suggestions, files_scanned=report.files_scanned)
+            history.save_health_score(report.run_id, health)
+        finally:
+            history.close()
 
         markdown = ReportAgent.render_markdown(report)
         with open(args.output, "w", encoding="utf-8") as fh:

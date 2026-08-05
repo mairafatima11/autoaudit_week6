@@ -20,7 +20,7 @@ def mock_repo_path() -> str:
 def tmp_config(tmp_path: Path) -> Config:
     return Config(
         mode="mock",
-        anthropic_api_key=None,
+        groq_api_key=None,
         gemini_api_key=None,
         data_dir=tmp_path / "data",
         log_dir=tmp_path / "logs",
