@@ -29,15 +29,21 @@ def test_quality_agent_flags_long_function(tmp_path, mock_repo_path):
     store.close()
 
 
-def test_quality_agent_flags_missing_docstring(tmp_path, mock_repo_path):
+def test_quality_agent_does_not_duplicate_documentation_findings(tmp_path, mock_repo_path):
+    """Missing docstrings are DocumentationAgent's responsibility only.
+
+    They used to be detected here as well, so every gap was reported twice
+    under two different categories and the Quality score was dragged down by
+    a documentation signal. This test locks in the single-owner split — see
+    the QualityAgent module docstring.
+    """
     store, tracer, repo_id, files = _build_kb(tmp_path, mock_repo_path)
     gemini = GeminiClient(mock=True)
     agent = QualityAgent(gemini, store, tracer)
 
     findings = agent.run(repo_id, files)
-    doc_findings = [f for f in findings if f.rule == "missing-docstring"]
-    assert doc_findings
-    assert all("safe_add" not in f.evidence for f in doc_findings)
+    assert [f for f in findings if f.rule == "missing-docstring"] == []
+    assert all(f.category == "quality" for f in findings)
     store.close()
 
 

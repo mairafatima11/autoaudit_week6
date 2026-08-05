@@ -4,7 +4,7 @@ from pathlib import Path
 
 from autoaudit.agents.repository_agent import RepositoryAgent
 from autoaudit.agents.security_agent import SecurityAgent
-from autoaudit.llm.claude_client import ClaudeClient
+from autoaudit.llm.groq_client import GroqClient
 from autoaudit.memory.vector_store import VectorStore
 from autoaudit.tracing import Tracer
 
@@ -19,8 +19,8 @@ def _build_kb(tmp_path: Path, mock_repo_path: str):
 
 def test_security_agent_finds_planted_issues(tmp_path, mock_repo_path):
     store, tracer, repo_id, files, root = _build_kb(tmp_path, mock_repo_path)
-    claude = ClaudeClient(mock=True)
-    agent = SecurityAgent(claude, store, tracer)
+    groq = GroqClient(mock=True)
+    agent = SecurityAgent(groq, store, tracer)
     findings = agent.run(repo_id, str(root), files)
  
     rules = " ".join(f.rule.lower() for f in findings)
@@ -35,18 +35,18 @@ def test_security_agent_finds_planted_issues(tmp_path, mock_repo_path):
 
 def test_security_agent_findings_have_llm_generated_descriptions(tmp_path, mock_repo_path):
     store, tracer, repo_id, files, root = _build_kb(tmp_path, mock_repo_path)
-    claude = ClaudeClient(mock=True)
-    agent = SecurityAgent(claude, store, tracer)
+    groq = GroqClient(mock=True)
+    agent = SecurityAgent(groq, store, tracer)
 
     findings = agent.run(repo_id, str(root), files)
-    assert all(f.description.startswith("[mock-claude]") for f in findings)
+    assert all(f.description.startswith("[mock-groq]") for f in findings)
     store.close()
 
 
 def test_security_agent_records_category_and_source(tmp_path, mock_repo_path):
     store, tracer, repo_id, files, root = _build_kb(tmp_path, mock_repo_path)
-    claude = ClaudeClient(mock=True)
-    agent = SecurityAgent(claude, store, tracer)
+    groq = GroqClient(mock=True)
+    agent = SecurityAgent(groq, store, tracer)
 
     findings = agent.run(repo_id, str(root), files)
     assert all(f.category == "security" for f in findings)

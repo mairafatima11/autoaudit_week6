@@ -18,6 +18,23 @@ CODE_EXTENSIONS = {
     ".py", ".js", ".ts", ".tsx", ".jsx", ".go", ".java", ".rb", ".php",
     ".c", ".cc", ".cpp", ".h", ".hpp", ".rs", ".sh", ".yml", ".yaml", ".json",
 }
+# Exact package-manager-manifest filenames to include *regardless* of
+# extension/skip rules below. These carry no "code" of their own, but
+# `repo_profiler.profile_repository()` reads package.json/pyproject.toml/
+# requirements.txt/etc. out of this same scanned file list to detect the
+# package manager and framework. Before this was added, every one of these
+# (pyproject.toml, requirements.txt, Pipfile, poetry.lock, uv.lock,
+# Cargo.toml, ...) was silently dropped by the CODE_EXTENSIONS filter below,
+# so the profiler never saw them and the Repository page always reported
+# "Package manager: Not detected" no matter what repo_profiler.py itself
+# was capable of recognizing. Matched by exact basename, not extension, so
+# this doesn't sweep in unrelated .txt/.toml/.lock files (changelogs,
+# licenses, arbitrary config) the way a blanket extension allowlist would.
+MANIFEST_FILENAMES = {
+    "pyproject.toml", "setup.py", "setup.cfg", "requirements.txt", "requirements-dev.txt",
+    "Pipfile", "poetry.lock", "uv.lock",
+    "Cargo.toml", "go.mod", "pom.xml", "build.gradle", "Gemfile", "composer.json",
+}
 BINARY_MARKERS = (b"\x00",)
 
 
@@ -53,20 +70,80 @@ def language_for(path: str) -> str:
     }.get(ext, "text")
 
 
+_URL_PREFIXES = ("http://", "https://", "git://", "ssh://", "git@")
+
+
+def normalize_source(source: str) -> str:
+    """Canonical form of a user-supplied repo source.
+
+    A single leading space is enough to break everything downstream: with
+    it, `startswith("https://")` is False, the URL is treated as a local
+    filesystem path, and the run fails with "Repo path does not exist:
+    <the URL>" — which looks absurd, because HTML collapses leading
+    whitespace and the error banner renders a perfectly valid-looking URL.
+    Trailing whitespace fails differently and just as confusingly, with git
+    reporting that it can't clone a URL that reads correctly on screen.
+
+    Also strips wrapping quotes, since a copied `"https://..."` is a common
+    paste artefact.
+    """
+    cleaned = (source or "").strip()
+    if len(cleaned) >= 2 and cleaned[0] == cleaned[-1] and cleaned[0] in "\"'":
+        cleaned = cleaned[1:-1].strip()
+    return cleaned
+
+
+def looks_like_url(source: str) -> bool:
+    """Whether `source` should be cloned rather than read from disk."""
+    normalized = normalize_source(source)
+    return normalized.startswith(_URL_PREFIXES) or normalized.endswith(".git")
+
+
 def resolve_repo(source: str, workdir: Path) -> tuple[Path, bool]:
     """Return (local_path, is_temp). Clones `source` if it looks like a URL,
     otherwise treats it as a local path."""
-    if source.startswith("http://") or source.startswith("https://") or source.endswith(".git"):
+    source = normalize_source(source)
+
+    if not source:
+        raise ValueError("No repository source given — provide a local path or a git URL.")
+
+    if looks_like_url(source):
         dest = workdir / "cloned_repo"
-        subprocess.run(
-            ["git", "clone", "--depth", "1", source, str(dest)],
-            check=True,
-            capture_output=True,
-        )
+        try:
+            subprocess.run(
+                ["git", "clone", "--depth", "1", source, str(dest)],
+                check=True,
+                capture_output=True,
+            )
+        except FileNotFoundError as exc:  # `git` itself isn't installed
+            raise RuntimeError(
+                "git is not installed or not on PATH, so remote repositories can't be "
+                "cloned. Install git, or point AutoAudit at a local directory instead."
+            ) from exc
+        except subprocess.CalledProcessError as exc:
+            # Surface git's own message. Without this the user saw only a
+            # bare non-zero exit status, which says nothing about whether
+            # the repo is private, misspelled, or the network is down.
+            detail = (exc.stderr or b"")
+            if isinstance(detail, bytes):
+                detail = detail.decode("utf-8", errors="replace")
+            raise RuntimeError(
+                f"git clone failed for {source!r}: {detail.strip()[:400] or 'no error output'}"
+            ) from exc
         return dest, True
+
     path = Path(source).expanduser().resolve()
     if not path.exists():
-        raise FileNotFoundError(f"Repo path does not exist: {source}")
+        # `source!r` on purpose: quoting is what makes stray whitespace or
+        # quote characters visible. The unquoted version rendered as a
+        # valid-looking URL and hid the actual problem.
+        raise FileNotFoundError(
+            f"Repo path does not exist: {source!r}. "
+            "If you meant a remote repository, the URL must start with https:// "
+            "(check for stray whitespace or quote characters)."
+        )
+    if not path.is_dir():
+        raise NotADirectoryError(f"Repo source must be a directory, not a file: {source!r}")
     return path, False
 
 
@@ -120,9 +197,13 @@ def read_repo(source: str, max_file_bytes: int = 400_000) -> tuple[list[FileReco
     calling `resolve_repo` a second time. Caller is responsible for cleaning
     up temp_dir if it isn't None (use `cleanup_if_temp`).
     """
-    workdir = Path(tempfile.mkdtemp(prefix="autoaudit_")) if (
-        source.startswith("http") or source.endswith(".git")
-    ) else None
+    # Normalize once here too, so the URL check that decides whether to make
+    # a temp workdir agrees with the one inside `resolve_repo`. These two
+    # tests were subtly different (`startswith("http")` vs the full prefix
+    # list), which is exactly the kind of drift that produces "it decided
+    # this was a local path" bugs.
+    source = normalize_source(source)
+    workdir = Path(tempfile.mkdtemp(prefix="autoaudit_")) if looks_like_url(source) else None
 
     root, is_temp = resolve_repo(source, workdir or Path(tempfile.gettempdir()))
     records: list[FileRecord] = []
@@ -132,7 +213,7 @@ def read_repo(source: str, max_file_bytes: int = 400_000) -> tuple[list[FileReco
             continue
         if any(part in SKIP_DIRS for part in path.parts):
             continue
-        if path.suffix not in CODE_EXTENSIONS:
+        if path.suffix not in CODE_EXTENSIONS and path.name not in MANIFEST_FILENAMES:
             continue
         try:
             raw = path.read_bytes()

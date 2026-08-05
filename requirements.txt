@@ -2,7 +2,6 @@ pydantic>=2.6
 numpy>=1.26
 requests>=2.31
 python-dotenv>=1.0
-pytest>=8.0
-pytest-cov>=5.0
-
-
+fastapi>=0.110
+uvicorn[standard]>=0.29
+reportlab>=4.0
